@@ -380,6 +380,69 @@ body {
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes floatWatermark { 0%, 100% { top: 10%; left: 10%; } 25% { top: 80%; left: 20%; } 50% { top: 50%; left: 80%; } 75% { top: 20%; left: 60%; } }
 .no-select { user-select: none; -webkit-user-select: none; -ms-user-select: none; }
+
+
+
+/* ========================================== */
+/* 📱 إصلاح شاشة مشغل الفيديو للموبايل */
+/* ========================================== */
+@media (max-width: 768px) {
+    /* إجبار الشاشة كلها على ترتيب عمودي سليم */
+    #protected-course-screen {
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    /* 1. إصلاح الهيدر (زرار العودة وعنوان الكورس) عشان مياخدش مساحة ضخمة */
+    #protected-course-screen > div:first-child {
+        padding: 10px 15px !important;
+    }
+    #protected-course-screen > div:first-child > div {
+        width: 100% !important;
+        justify-content: space-between !important;
+        gap: 10px !important;
+    }
+    #player-course-title {
+        font-size: 14px !important;
+        border-right: none !important;
+        padding-right: 0 !important;
+        flex: 1;
+        text-align: right;
+        line-height: 1.4;
+    }
+    #protected-course-screen button[onclick="closeCoursePlayer()"] {
+        padding: 8px 12px !important;
+        font-size: 12px !important;
+        white-space: nowrap;
+    }
+
+    /* 2. السحر هنا: عكس الترتيب ليكون الفيديو فوق والقائمة تحت */
+    #anti-record-container {
+        display: flex !important;
+        flex-direction: column-reverse !important; 
+        width: 100% !important;
+        flex: 1 !important;
+    }
+
+    /* 3. إعطاء الفيديو ارتفاع ثابت ومناسب لشاشة الموبايل بالعرض */
+    #video-wrapper {
+        width: 100% !important;
+        height: 250px !important;
+        min-height: 250px !important;
+        flex: none !important;
+    }
+
+    /* 4. جعل قائمة المحتويات تأخذ باقي مساحة الشاشة بالأسفل */
+    #player-playlist {
+        width: 100% !important;
+        height: auto !important;
+        flex: 1 !important;
+        border-left: none !important;
+        border-top: 2px solid #1e293b !important;
+        padding: 15px !important;
+        overflow-y: auto !important;
+    }
+}
 </style>
 </head>
 <body>
