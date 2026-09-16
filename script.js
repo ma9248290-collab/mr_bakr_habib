@@ -932,9 +932,9 @@ window.processStudentSaving = async function(keepOpen) {
     if(typeof addSystemLog === "function") addSystemLog("إضافة طالب 🎓", `تسجيل الطالب: ${name} (كود: ${code}) في ${group}`);
 
     // إرسال الواتساب
-    const portalLink = `https://ma9248290-collab.github.io/mr_mahmoud_saad/parent.html`;
-    const teacherName = localStorage.getItem("teacherName") || "Sami Samir";
-    const centerName = localStorage.getItem("centerName") || "هيستوريا";
+    const portalLink = `https://ma9248290-collab.github.io/mr_bakr_habib/parent.html`;
+    const teacherName = localStorage.getItem("teacherName") || "";
+    const centerName = localStorage.getItem("centerName") || "";
 
     const welcomeMsg = `🌟 *مرحبًا بك في كتيبة الأوائل مع ${centerName}* 🌟\n*مستر / ${teacherName}*\n\nأهلاً بك يا بطل/ة: *${name}* 👑\nتم تسجيل بياناتك بنجاح في المنصة التعليمية 🎉\n\n📌 *بيانات حسابك في النظام:*\n▫️ *كود الطالب:* \`${code}\`\n▫️ *الصف الدراسي:* ${level}\n▫️ *المجموعة:* ${group}\n\n🔗 *رابط الدخول للمنصة التعليمية:*\n${portalLink}\n\n💡 *تنبيه:* استخدم كود الطالب ورقم هاتف ولي الأمر لتسجيل الدخول لمتابعة المحاضرات والامتحانات ونتائجك أولاً بأول.\n\nمع تمنياتنا لك بالتفوق والدرجة النهائية! 🎯💪`;
 
@@ -2812,7 +2812,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function updateParentLinkUI() {
     const linkInput = document.getElementById("parentPortalLink");
     if (linkInput) {
-        linkInput.value = "https://ma9248290-collab.github.io/mr_mahmoud_saad/parent";
+        linkInput.value = "https://ma9248290-collab.github.io/mr_bakr_habib/parent";
     }
 }
 
@@ -6412,7 +6412,7 @@ window.confirmApproveRequest = async function() {
         await fetch(`https://new-0-2b6c6-default-rtdb.europe-west1.firebasedatabase.app/${localStorage.getItem("licenseKey")}/join_requests/${id}.json`, { method: 'DELETE' });
 
         // إرسال رسالة واتساب للطالب (ولو مش كاتب رقمه هيبعت لولي الأمر احتياطي)
-        let portalLink = `https://ma9248290-collab.github.io/mr_mahmoud_saad/parent.html`;
+        let portalLink = `https://ma9248290-collab.github.io/mr_bakr_habib/parent.html`;
         let waMsg = `🎉 *تمت الموافقة على طلب الانضمام*\nأهلاً بك في نظام ${localStorage.getItem("teacherName") || "السنتر"}.\n\n👤 *اسم الطالب:* ${newStudent.name}\n📚 *المجموعة:* ${newStudent.group}\n🔑 *كود الدخول الخاص بك:* ${newCode}\n\n🔗 *رابط منصة الطالب:* ${portalLink}`;
         
         if (typeof sendAutoWhatsApp === "function") {
@@ -6777,18 +6777,35 @@ window.mergeOfflineDataAndSync = async function() {
 
         // 3. دمج الحصص والحضور (أهم نقطة عشان الغياب ميتلغيش)
         let mergedSessionsMap = {};
-        (serverData.classSessions || []).forEach(s => { if(s) mergedSessionsMap[s.id] = s; });
+        (serverData.classSessions || []).forEach(s => { if(s) mergedSessionsMap[s.id] = JSON.parse(JSON.stringify(s)); }); // Deep copy لمنع التعديل العكسي
+        
         classSessions.forEach(s => {
             if(mergedSessionsMap[s.id]) {
-                // لو الحصة موجودة في الجهازين، ادمج غياب الطلاب اللي هنا مع اللي هناك
-                mergedSessionsMap[s.id].attendance = { ...mergedSessionsMap[s.id].attendance, ...s.attendance };
-                mergedSessionsMap[s.id] = { ...mergedSessionsMap[s.id], ...s, attendance: mergedSessionsMap[s.id].attendance };
+                // دمج ذكي للحضور يضمن عدم فقدان أي بيانات
+                let serverAtt = mergedSessionsMap[s.id].attendance || {};
+                let localAtt = s.attendance || {};
+                
+                // دمج كل كود موجود في الجهاز المحلي مع السيرفر
+                Object.keys(localAtt).forEach(studentCode => {
+                    // لو الطالب مش متسجل في السيرفر أو حالته متغيرة محلياً، نأخذ القيمة المحلية
+                    if (!serverAtt[studentCode] || localAtt[studentCode] !== serverAtt[studentCode]) {
+                        serverAtt[studentCode] = localAtt[studentCode];
+                    }
+                });
+
+                mergedSessionsMap[s.id].attendance = serverAtt;
+                
+                // تحديث باقي خصائص الحصة (زي الحالة مغلقة أو مفتوحة)
+                if (s.status === 'closed') mergedSessionsMap[s.id].status = 'closed';
+                if (s.reportData) mergedSessionsMap[s.id].reportData = s.reportData;
+                
             } else {
                 mergedSessionsMap[s.id] = s; // لو حصة جديدة أوفلاين
             }
         });
         classSessions = Object.values(mergedSessionsMap).sort((a,b) => new Date(a.date) - new Date(b.date));
 
+        
         // 4. دمج الامتحانات والدرجات
         let mergedExamsMap = {};
         (serverData.exams || []).forEach(e => { if(e) mergedExamsMap[e.id] = e; });
