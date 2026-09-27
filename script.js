@@ -1038,17 +1038,28 @@ function onScanFailure() {}
 // ملاحظة: دوال الواجبات والامتحانات والحضور اللي في كودك الأصلي موجودة وتعمل بنفس المنطق.
 
 
-// ==========================================
-// 10. تكملة ملف الطالب وتعديل بياناته
-// ==========================================
 function deleteStudentFromProfile() { 
     customConfirm("حذف الطالب نهائياً؟", () => { 
-        const student = students.find(s => s.code === currentStudentProfileCode);
-        if(typeof addSystemLog === "function" && student) addSystemLog("حذف طالب 🗑️", `تم مسح الطالب: ${student.name} (كود: ${student.code}) نهائياً من النظام`);
+        // 💡 السحر هنا: بنمسح الطالب من موقعه بالظبط في المصفوفة
+        let targetIndex = window.currentStudentProfileIndex;
         
-        students = students.filter(s => s.code !== currentStudentProfileCode); 
-        localStorage.setItem("students", JSON.stringify(students)); 
-        backToStudents(); renderTable(); showToast("تم الحذف"); 
+        if(targetIndex > -1 && students[targetIndex]) {
+            const student = students[targetIndex];
+            
+            if(typeof addSystemLog === "function") {
+                addSystemLog("حذف طالب 🗑️", `تم مسح الطالب: ${student.name} (كود: ${student.code}) نهائياً من النظام`);
+            }
+            
+            // إزالة الطالب من المصفوفة بالـ index بتاعه
+            students.splice(targetIndex, 1);
+            localStorage.setItem("students", JSON.stringify(students)); 
+            
+            backToStudents(); 
+            renderTable(); 
+            showToast("تم الحذف بنجاح ✅"); 
+        } else {
+            showToast("حدث خطأ أثناء الحذف، يرجى تحديث الصفحة", "error");
+        }
     }); 
 }
 
@@ -5634,20 +5645,43 @@ window.backToStudents = function(fromHistory = false) {
     }
 };
 
-window.openStudentProfile = function(code) {
-    const student = students.find(s => s.code === code); if(!student) return;
+window.openStudentProfile = function(code, index = -1) {
+    // 💡 السحر هنا: لو معانا الـ index نستخدمه، لو مش معانا ندور بالكود
+    let studentIndex = index > -1 ? index : students.findIndex(s => s.code === String(code));
+    const student = students[studentIndex];
+    if(!student) return;
     
     window.profileSourceView = document.getElementById("group-details-view")?.style.display === "block" ? 'group' : 'students';
-    switchPage('students'); currentStudentProfileCode = code;
+    switchPage('students'); 
+    currentStudentProfileCode = String(student.code);
+    window.currentStudentProfileIndex = studentIndex; // 🔥 حفظنا مكانه بالظبط
+    
     document.getElementById("students-overview").style.display = "none"; 
     document.getElementById("group-details-view").style.display = "none";
     document.getElementById("student-profile-view").style.display = "block";
     
     let specialBadge = student.isSpecialCase ? `<span style="font-size: 14px; margin-right: 5px;" title="حالة خاصة: ${student.specialAmount > 0 ? 'يدفع ' + student.specialAmount + ' ج.م' : 'إعفاء تام'}">⭐</span>` : '';
-    document.getElementById("profile-name").innerHTML = student.name + specialBadge; 
+    
+    let suspendBadge = student.isSuspended ? `<span style="background:#ef4444; color:white; padding:4px 10px; border-radius:8px; font-size:12px; font-weight:bold; margin-right:10px; box-shadow:0 2px 5px rgba(239,68,68,0.3);">موقوف ⛔</span>` : '';
+    
+    document.getElementById("profile-name").innerHTML = student.name + specialBadge + suspendBadge; 
+
+    let suspendBtn = document.getElementById("suspend-student-btn");
+    if(suspendBtn) {
+        if(student.isSuspended) {
+            suspendBtn.innerHTML = "✅ فك الإيقاف (تفعيل)";
+            suspendBtn.style.backgroundColor = "#10b981";
+            suspendBtn.style.color = "white";
+            suspendBtn.style.border = "none";
+        } else {
+            suspendBtn.innerHTML = "⛔ إيقاف الطالب";
+            suspendBtn.style.backgroundColor = "rgba(239, 68, 68, 0.1)";
+            suspendBtn.style.color = "#ef4444";
+            suspendBtn.style.border = "1px solid #ef4444";
+        }
+    }
     document.getElementById("profile-code-group").innerText = `${student.code} | المجموعة: ${student.group}`;
     
-    // 💡 التحديث هنا لعرض الملاحظة
     if (document.getElementById("profile-student-note")) {
         document.getElementById("profile-student-note").innerText = student.note ? student.note : "لا توجد ملاحظات مسجلة.";
     }
@@ -5756,7 +5790,7 @@ window.renderTable = function() {
             <td>${student.name} ${specialBadge} ${noteIcon}</td>
             <td>${student.level} ${trackBadge}</td>
             <td>${student.group}</td>
-            <td><button class="profile-btn" onclick="openStudentProfile('${student.code}')">👤 الملف</button></td>
+            <td><button class="profile-btn" onclick="openStudentProfile('${student.code}', ${students.indexOf(student)})">👤 الملف</button></td>
         </tr>`; 
     }); 
     
@@ -5833,7 +5867,7 @@ window.renderGroupStudentsTable = function() {
             <td style="direction: ltr;">${student.parentPhone}</td>
             <td>
                 <div style="display: flex; gap: 5px; justify-content: center;">
-                    <button class="profile-btn" onclick="openStudentProfile('${student.code}')" style="margin:0;">👤 الملف</button>
+                    <button class="profile-btn" onclick="openStudentProfile('${student.code}', ${students.indexOf(student)})" style="margin:0;">👤 الملف</button>
                     <button class="icon-btn danger admin-only" onclick="removeStudentFromGroup('${student.code}')" title="إزالة من المجموعة">❌</button>
                 </div>
             </td>
